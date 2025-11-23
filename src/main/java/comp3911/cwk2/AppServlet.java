@@ -29,7 +29,9 @@ public class AppServlet extends HttpServlet {
 
   // Use parameterized queries to prevent SQL injection
   private static final String AUTH_QUERY   = "select password from user where username = ?";
-  private static final String SEARCH_QUERY = "select * from patient where surname = ? collate nocase";
+  // Fix for Broken Access Control: Added subquery to ensure doctor can only see their own patients
+  private static final String SEARCH_QUERY =
+          "select * from patient where surname = ? AND gp_id = (select id from user where username = ?)";
 
   private final Configuration fm = new Configuration(Configuration.VERSION_2_3_28);
   private Connection database;
@@ -88,7 +90,8 @@ public class AppServlet extends HttpServlet {
       if (authenticated(username, password)) {
         // Get search results and merge with template
         Map<String, Object> model = new HashMap<>();
-        model.put("records", searchResults(surname));
+        // Fix: Pass username to searchResults to enforce access control check
+        model.put("records", searchResults(surname, username));
         Template template = fm.getTemplate("details.html");
         template.process(model, response.getWriter());
       }
@@ -122,7 +125,7 @@ public class AppServlet extends HttpServlet {
     }
   }
 
-  private List<Record> searchResults(String surname) throws SQLException {
+  private List<Record> searchResults(String surname, String username) throws SQLException {
     List<Record> records = new ArrayList<>();
 
     if (surname == null) {
@@ -131,6 +134,7 @@ public class AppServlet extends HttpServlet {
 
     try (PreparedStatement ps = database.prepareStatement(SEARCH_QUERY)) { // Fix for SQL injection (search)
       ps.setString(1, surname);
+      ps.setString(2, username); // Fix: Bind username to the SQL query to filter by gp_id
       try (ResultSet results = ps.executeQuery()) {
         while (results.next()) {
           Record rec = new Record();
