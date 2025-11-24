@@ -12,9 +12,6 @@ graph TD
   R -->|"AND"| C2["Reuse stolen credentials to log in"]
   C2 -->|"AND"| L1["Submit valid username/password via login form"]
   C2 -->|"AND"| L2["Query surnames to enumerate patient records"]
-
-  R -->|"OR"| IMP1["Impact: disclosure of patient names, DOB, addresses, diagnoses"]
-  R -->|"OR"| IMP2["Impact: downstream account takeover if passwords reused elsewhere"]
 ```
 
 **说明**
