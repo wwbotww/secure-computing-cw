@@ -22,6 +22,7 @@ import freemarker.template.Template;
 import freemarker.template.TemplateException;
 import freemarker.template.TemplateExceptionHandler;
 
+import freemarker.core.HTMLOutputFormat
 @SuppressWarnings("serial")
 public class AppServlet extends HttpServlet {
 
@@ -40,6 +41,9 @@ public class AppServlet extends HttpServlet {
   public void init() throws ServletException {
     configureTemplateEngine();
     connectToDatabase();
+    // Fix for stored XSS: enable HTML output escaping
+      fm.setOutputFormat(HTMLOutputFormat.INSTANCE);
+      fm.setAutoEscapingPolicy(Configuration.ENABLE_IF_DEFAULT_AUTO_ESCAPING_POLICY);
   }
 
   private void configureTemplateEngine() throws ServletException {
