@@ -7,17 +7,17 @@ graph TD
   R -->|"AND"| C1["Compromise Credentials"]
 
   C1 -->|"OR"| M1["Steal Database / Backups"]
-  M1 -->|"AND"| S1["Obtain `db.sqlite3` / backup archive"]
+  M1 -->|"AND"| S1["Obtain db.sqlite3 or backup archive"]
   S1 --- EVID1["Evidence: database stored beside app, no extra protection"]
-  M1 -->|"AND"| S2["Extract plaintext `user.password` values"]
-  S2 --- EVID2["Evidence: `sqlite3 db.sqlite3 \"select username, password from user;\"` shows entries like `plain_demo|secret123`"]
+  M1 -->|"AND"| S2["Extract plaintext user.password values"]
+  S2 --- EVID2["Evidence: sqlite3 db.sqlite3 select username,password from user shows entries like plain_demo|secret123"]
 
   C1 -->|"OR"| M2["Intercept credentials in transit (fallback path)"]
   %% focus on plaintext storage path
 
   R -->|"AND"| C2["Reuse stolen credentials to log in"]
   C2 -->|"AND"| L1["Submit valid username/password via login form"]
-  L1 --- EVID3["Evidence: `AppServlet` authenticates with `PasswordUtils.matches` once plaintext retrieved"]
+  L1 --- EVID3["Evidence: AppServlet authenticates with PasswordUtils.matches once plaintext retrieved"]
   C2 -->|"AND"| L2["Query surnames to enumerate patient records"]
 
   R -->|"OR"| IMP1["Impact: disclosure of patient names, DOB, addresses, diagnoses"]
