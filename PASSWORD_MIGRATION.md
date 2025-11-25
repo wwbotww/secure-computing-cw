@@ -1,34 +1,34 @@
-# 明文密码修补说明
+# Password Migration Guide
 
-## 背景
-- 早期系统直接在 `user.password` 字段保存明文密码，`AppServlet` 通过 SQL 拼接同时校验用户名与密码，存在泄漏风险。
-- 为消除明文存储，本次更新引入 `org.mindrot:jbcrypt:0.4`，并新增 `PasswordUtils` 与 `PasswordMigration`，提供兼容旧数据的迁移方案。
+## Background
+- The original system stored plaintext passwords directly in the `user.password` field, with `AppServlet` using SQL string concatenation to verify both username and password, creating a credential exposure risk.
+- To eliminate plaintext storage, this update introduces `org.mindrot:jbcrypt:0.4` and adds `PasswordUtils` and `PasswordMigration`, providing a migration solution compatible with legacy data.
 
-## 设计概览（修改部分）
-| 组件 | 作用 |
+## Design Overview (Modified Components)
+| Component | Purpose |
 | --- | --- |
-| `PasswordUtils` | 封装 BCrypt 哈希、匹配以及“是否需要迁移”的判断，Cost 设为 12，可在类中集中调节。 |
-| `PasswordMigration` | 连接 `db.sqlite3`，筛出所有非 BCrypt 值并批量更新为哈希；支持多次运行，已迁移条目会自动跳过。 |
-| `AppServlet.authenticated` | 仅按用户名提取 `password` 字段，然后调用 `PasswordUtils.matches`。若数据库中仍存在明文，将继续兼容；一旦迁移完成，校验即走 BCrypt。 |
-| Gradle 任务 `migratePasswords` | 入口命令 `./gradlew migratePasswords`，内部运行上述迁移逻辑。 |
+| `PasswordUtils` | Encapsulates BCrypt hashing, matching, and "requires migration" checks. Cost factor set to 12, adjustable centrally within the class. |
+| `PasswordMigration` | Connects to `db.sqlite3`, identifies all non-BCrypt values, and batch-updates them to hashes. Supports multiple runs; already-migrated entries are automatically skipped. |
+| `AppServlet.authenticated` | Queries only by username to retrieve the `password` field, then calls `PasswordUtils.matches`. If plaintext remains in the database, it continues to work; once migration completes, verification uses BCrypt. |
+| Gradle task `migratePasswords` | Entry command `./gradlew migratePasswords`, executes the migration logic above. |
 
-## 迁移步骤
-1. 在项目根目录启用既有环境（例如 `conda activate ibkr`）。
-2. **备份数据库**：`cp db.sqlite3 db.sqlite3.bak`，必要时可用备份回滚。
-3. 执行命令：
+## Migration Steps
+1. Activate your existing environment in the project root (e.g., `conda activate ibkr`).
+2. **Backup the database**: `cp db.sqlite3 db.sqlite3.bak` for rollback if needed.
+3. Execute the command:
    ```bash
    cd "/Users/young/Desktop/secure computing/cw/patients2"
    ./gradlew migratePasswords
    ```
-   - 控制台会输出“Password migration complete. X password(s) updated.”，若 X 为 0 表示所有条目均已是 BCrypt。
-4. 验证：使用原有账号登录；若成功则表示明文密码已被无缝替换。
+   - Console output will show "Password migration complete. X password(s) updated." If X is 0, all entries are already BCrypt hashes.
+4. Verify: Log in with existing accounts; success indicates plaintext passwords have been seamlessly replaced.
 
-## 常见问题
-- **重复执行**：脚本具备幂等性，多次运行只会跳过已经哈希的行。
-- **新增/重置账号**：任何写入密码的代码都需调用 `PasswordUtils.hashPassword`，禁止再将明文直接插入 `user.password`。
-- **回滚**：若遇异常，可停止应用、恢复 `db.sqlite3.bak` 并重新运行 `./gradlew migratePasswords`。
+## FAQ
+- **Repeated execution**: The script is idempotent; multiple runs will skip already-hashed rows.
+- **Adding/resetting accounts**: Any code writing passwords must call `PasswordUtils.hashPassword`; never insert plaintext directly into `user.password`.
+- **Rollback**: If issues occur, stop the application, restore `db.sqlite3.bak`, and re-run `./gradlew migratePasswords`.
 
-## 后续建议
-- 在数据库层为 `user.username` 添加唯一约束，保证认证逻辑的单记录假设成立。
-- 结合本次改动尽快替换 `authenticated` 中的字符串拼接 SQL，避免注入攻击。
+## Future Recommendations
+- Add a unique constraint on `user.username` at the database level to ensure the single-record assumption in authentication logic holds.
+- Replace SQL string concatenation in `authenticated` to prevent injection attacks, building on this update.
 
