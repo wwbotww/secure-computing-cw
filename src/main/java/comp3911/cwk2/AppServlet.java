@@ -22,7 +22,7 @@ import freemarker.template.Template;
 import freemarker.template.TemplateException;
 import freemarker.template.TemplateExceptionHandler;
 
-import freemarker.core.HTMLOutputFormat
+import freemarker.core.HTMLOutputFormat;
 @SuppressWarnings("serial")
 public class AppServlet extends HttpServlet {
 
